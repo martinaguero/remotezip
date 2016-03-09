@@ -31,19 +31,19 @@ public class RemoteZipFile {
 		maxFileOffset = centralOffset;
 
 		baseUrl = path;
-		// entries = new ZipEntry[totalEntries];
+		 entries = new ZipEntry[totalEntries];
 
-		// URL url = new URL(path);
-		// HttpURLConnection req = (HttpURLConnection) url.openConnection();
-		// req.setRequestProperty("Range", "bytes=" + centralOffset + "-" +
-		// centralOffset + centralSize);
-		// req.connect();
-		//
-		// System.out.println("Response Code: " + req.getResponseCode());
-		// System.out.println("Content-Length: " + req.getContentLengthLong());
-		// System.out.println("Total entries: " + totalEntries);
-		//
-		// InputStream s = req.getInputStream();
+		 URL url = new URL(path);
+		 HttpURLConnection req = (HttpURLConnection) url.openConnection();
+		 req.setRequestProperty("Range", "bytes=" + centralOffset + "-" +
+		 centralOffset + centralSize);
+		 req.connect();
+		
+		 System.out.println("Response Code: " + req.getResponseCode());
+		 System.out.println("Content-Length: " + req.getContentLengthLong());
+		 System.out.println("Total entries: " + totalEntries);
+		
+		 InputStream s = req.getInputStream();
 
 		return false;
 	}
@@ -65,11 +65,11 @@ public class RemoteZipFile {
 			System.out.println("Content-Length: " + req.getContentLengthLong());
 
 			InputStream is = req.getInputStream();
-			byte[] bb = IOUtils.toByteArray(is);
+			byte[] bb = new byte[req.getContentLength()];
 			// System.out.println(Hex.encodeHexString( bytes ));
 //			byteArrayToHex(bb);
 
-			int endSize = ReadAll(bb, 0, req.getContentLength(), is);
+			int endSize = readAll(bb, 0, req.getContentLength(), is);
 			
 			req.disconnect();
 			
@@ -78,7 +78,6 @@ public class RemoteZipFile {
 			int pos = endSize - 22;
 			int state = 0;
 			while (pos >= 0) {
-				System.out.println(byteToHex(bb[pos]));
 				if (bb[pos] == 0x50) {
 					if (bb[pos + 1] == 0x4b && bb[pos + 2] == 0x05
 							&& bb[pos + 3] == 0x06) {
@@ -139,7 +138,7 @@ public class RemoteZipFile {
 		return String.format("%02x", b & 0xff);
 	}
 	
-	static int ReadAll(byte [] bb, int p, int sst, InputStream s) throws IOException
+	static int readAll(byte [] bb, int p, int sst, InputStream s) throws IOException
 	{
 		int ss = 0;
 		while(ss < sst)
@@ -156,6 +155,7 @@ public class RemoteZipFile {
 	public static void main(String[] args) throws IOException {
 		RemoteZipFile rz = new RemoteZipFile();
 		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
+//		rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
 
 	}
 
