@@ -10,22 +10,40 @@ import org.apache.commons.io.IOUtils;
 
 public class RemoteZipFile {
 
+	private ZipEntry[] entries;
+	private String baseUrl;
+
+	int maxFileOffset;
+	int centralOffset, centralSize;
+	int totalEntries;
+
 	public RemoteZipFile() {
 		System.setProperty("https.proxyHost", "proxy.up");
 		System.setProperty("https.proxyPort", "8080");
 	}
 
-	private ZipEntry[] entries;
-	private String baseUrl;
-	private int maxFileOffset;
-
 	public boolean load(String path) throws IOException {
 
-		int centralOffset, centralSize;
-		int totalEntries;
 		if (!findCentralDirectory(path)) {
 			return false;
 		}
+
+		maxFileOffset = centralOffset;
+
+		baseUrl = path;
+		// entries = new ZipEntry[totalEntries];
+
+		// URL url = new URL(path);
+		// HttpURLConnection req = (HttpURLConnection) url.openConnection();
+		// req.setRequestProperty("Range", "bytes=" + centralOffset + "-" +
+		// centralOffset + centralSize);
+		// req.connect();
+		//
+		// System.out.println("Response Code: " + req.getResponseCode());
+		// System.out.println("Content-Length: " + req.getContentLengthLong());
+		// System.out.println("Total entries: " + totalEntries);
+		//
+		// InputStream s = req.getInputStream();
 
 		return false;
 	}
@@ -41,7 +59,7 @@ public class RemoteZipFile {
 		while (true) {
 
 			HttpURLConnection req = (HttpURLConnection) url.openConnection();
-			req.setRequestProperty("Range", "bytes=" + "-" + 278);
+			req.setRequestProperty("Range", "bytes=" + "-" + currentLength+22);
 			req.connect();
 			System.out.println("Respnse Code: " + req.getResponseCode());
 			System.out.println("Content-Length: " + req.getContentLengthLong());
@@ -49,13 +67,18 @@ public class RemoteZipFile {
 			InputStream is = req.getInputStream();
 			byte[] bb = IOUtils.toByteArray(is);
 			// System.out.println(Hex.encodeHexString( bytes ));
-			byteArrayToHex(bb);
+//			byteArrayToHex(bb);
 
+			int endSize = ReadAll(bb, 0, req.getContentLength(), is);
+			
 			req.disconnect();
+			
+			
 
-			int pos = bb.length - 22;
+			int pos = endSize - 22;
 			int state = 0;
 			while (pos >= 0) {
+				System.out.println(byteToHex(bb[pos]));
 				if (bb[pos] == 0x50) {
 					if (bb[pos + 1] == 0x4b && bb[pos + 2] == 0x05
 							&& bb[pos + 3] == 0x06) {
@@ -80,9 +103,10 @@ public class RemoteZipFile {
 			} else {
 				// found it!! so at offset pos+3*4 there is Size, and pos+4*4
 				// BinaryReader is so elegant but now it's too much
-				size = makeInt(bb, pos + 12);
-				offset = makeInt(bb, pos + 16);
-				entries = makeShort(bb, pos + 10);
+				centralSize = makeInt(bb, pos + 12);
+				centralOffset = makeInt(bb, pos + 16);
+				totalEntries = makeShort(bb, pos + 10);
+				System.out.println(totalEntries);
 				return true;
 			}
 
@@ -109,6 +133,24 @@ public class RemoteZipFile {
 			System.out.println(s);
 		}
 		return sb.toString();
+	}
+
+	private static String byteToHex(byte b) {
+		return String.format("%02x", b & 0xff);
+	}
+	
+	static int ReadAll(byte [] bb, int p, int sst, InputStream s) throws IOException
+	{
+		int ss = 0;
+		while(ss < sst)
+		{
+			int r = s.read(bb, p, sst-ss);
+			if(r <= 0)
+				return ss;
+			ss += r;
+			p += r;
+		}
+		return ss;
 	}
 
 	public static void main(String[] args) throws IOException {
