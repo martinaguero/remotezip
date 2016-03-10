@@ -314,7 +314,7 @@ public class RemoteZipFile {
 		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
 		// rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
 		// rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
-		InputStream stream = rz.getInputStream(rz.getEntries()[2]);
+		InputStream stream = rz.getInputStream(rz.getEntries()[0]);
 		System.out.println(streamToString(stream));
 
 	}

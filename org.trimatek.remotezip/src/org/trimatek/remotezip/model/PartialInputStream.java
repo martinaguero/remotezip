@@ -58,7 +58,7 @@ public class PartialInputStream extends InflaterInputStream {
 		return count;
 	}
 
-	public long SkipBytes(long amount) throws IOException {
+	public long skipBytes(long amount) throws IOException {
 		if (amount < 0) {
 			throw new IndexOutOfBoundsException();
 		}
