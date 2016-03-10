@@ -1,12 +1,13 @@
 package org.trimatek.remotezip.test;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.zip.ZipEntry;
-
-import org.apache.commons.io.IOUtils;
+import java.util.zip.ZipException;
+import java.util.zip.ZipInputStream;
 
 public class RemoteZipFile {
 
@@ -45,6 +46,11 @@ public class RemoteZipFile {
 
 		InputStream s = req.getInputStream();
 
+		for (int i = 0; i < totalEntries; i++) {
+			if (readLeInt(s) != ZipInputStream.CENSIG) {
+				throw new ZipException("Wrong Central Directory signature");
+			}
+		}
 		return false;
 	}
 
@@ -165,6 +171,16 @@ public class RemoteZipFile {
 			p += r;
 		}
 		return ss;
+	}
+
+	int readLeInt(InputStream s) throws IOException {
+		int result = readLeShort(s) | readLeShort(s) << 16;
+		return result;
+	}
+
+	int readLeShort(InputStream s) throws IOException {
+		return new DataInputStream(s).readByte()
+				| new DataInputStream(s).readByte() << 8;
 	}
 
 	public static void main(String[] args) throws IOException {
