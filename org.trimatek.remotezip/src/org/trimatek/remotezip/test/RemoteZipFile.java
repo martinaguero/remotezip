@@ -93,7 +93,7 @@ public class RemoteZipFile {
 				// TODO check time data
 				entry.setTime(dostime);
 
-				System.out.println(name + " cmethod: " + entry.getMethod()
+				System.out.println("[" + i + "]" + name + " cmethod: " + entry.getMethod()
 						+ " crc: " + entry.getCrc() + " zsize: "
 						+ entry.getSize() + " comp size:  "
 						+ entry.getCompressedSize() + " time: "
@@ -311,12 +311,13 @@ public class RemoteZipFile {
 
 	public static void main(String[] args) throws IOException {
 		RemoteZipFile rz = new RemoteZipFile();
-		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
-		// rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
+//		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
+//		rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
+		rz.load("https://repo1.maven.org/maven2/jp/sf/amateras/mirage/1.2.3/mirage-1.2.3.jar");
 		// rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
-		InputStream stream = rz.getInputStream(rz.getEntries()[0]);
-//		System.out.println(printHexa(stream));
-		System.out.println(printString(stream));
+		InputStream stream = rz.getInputStream(rz.getEntries()[162]);
+		System.out.println(printHexa(stream));
+//		System.out.println(printString(stream));
 	}
 
 }
