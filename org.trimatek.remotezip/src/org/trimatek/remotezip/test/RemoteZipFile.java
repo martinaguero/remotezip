@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
@@ -23,6 +24,10 @@ public class RemoteZipFile {
 	public RemoteZipFile() {
 		System.setProperty("https.proxyHost", "proxy.up");
 		System.setProperty("https.proxyPort", "8080");
+	}
+
+	public RemoteZipEntry[] getEntries() {
+		return entries;
 	}
 
 	public boolean load(String path) throws IOException {
@@ -266,11 +271,37 @@ public class RemoteZipFile {
 
 		HttpURLConnection req = (HttpURLConnection) new URL(baseUrl)
 				.openConnection();
-		// int limit = (int)(entry.get+entry.getCompressedSize()+16+65536*2);
-		// if(limit >= MaxFileOffset)
-		// limit = MaxFileOffset-1;
+		int limit = (int) (entry.getOffset() + entry.getCompressedSize() + 16 + 65536 * 2);
+		if (limit >= maxFileOffset) {
+			limit = maxFileOffset - 1;
+		}
+
+		req.setRequestProperty("Range", "bytes=" + entry.getOffset() + "-"
+				+ limit);
+
+		InputStream baseStream = req.getInputStream();
+
+		skipLocalHeader(baseStream, entries[index]);
 
 		return null;
+	}
+
+	private void skipLocalHeader(InputStream baseStream, RemoteZipEntry entry)
+			throws IOException {
+		if (readLeInt(baseStream) != ZipEntry.LOCSIG) {
+			throw new ZipException("Wrong Local header signature");
+		}
+
+		skip(baseStream, 10 + 12);
+		int namelen = readLeShort(baseStream);
+		int extralen = readLeShort(baseStream);
+		skip(baseStream, namelen + extralen);
+
+	}
+
+	private static void skip(InputStream s, int n) throws IOException {
+		for (int i = 0; i < n; i++)
+			new DataInputStream(s).readByte();
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -278,7 +309,9 @@ public class RemoteZipFile {
 		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
 		// rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
 		// rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
-
+		rz.getInputStream(rz.getEntries()[0]);
+		
+		
 	}
 
 }
