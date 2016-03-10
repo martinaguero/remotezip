@@ -71,7 +71,14 @@ public class RemoteZipFile {
 			readAll(buffer, 0, nameLen, s);
 			String name = new String(buffer, "UTF-8");
 			
-			System.out.println(name);
+			ZipEntry entry = new ZipEntry(name);
+			
+			entry.setMethod((int) (method & 0xffffffffL)); 
+			entry.setCrc(crc & 0xffffffffL);
+			entry.setSize(size & 0xffffffffL);
+			entry.setCompressedSize(csize & 0xffffffffL);
+			
+			System.out.println(name + " cmethod: " + entry.getMethod() + " crc: " + entry.getCrc() + " zsize: " + entry.getSize() + " comp size:  " + entry.getCompressedSize());
 			
 		}
 		return false;
