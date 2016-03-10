@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
@@ -46,41 +47,66 @@ public class RemoteZipFile {
 
 		InputStream s = req.getInputStream();
 
-		for (int i = 0; i < totalEntries; i++) {
-			if (readLeInt(s) != ZipInputStream.CENSIG) {
-				throw new ZipException("Wrong Central Directory signature");
+		try {
+
+			for (int i = 0; i < totalEntries; i++) {
+				if (readLeInt(s) != ZipInputStream.CENSIG) {
+					throw new ZipException("Wrong Central Directory signature");
+				}
+
+				readLeInt(s);
+				readLeShort(s);
+				int method = readLeShort(s);
+				int dostime = readLeInt(s);
+				int crc = readLeInt(s);
+				int csize = readLeInt(s);
+				int size = readLeInt(s);
+				int nameLen = readLeShort(s);
+				int extraLen = readLeShort(s);
+				int commentLen = readLeShort(s);
+
+				readLeInt(s);
+				readLeInt(s);
+				int offset = readLeInt(s);
+
+				byte[] buffer = new byte[Math.max(nameLen, commentLen)];
+
+				readAll(buffer, 0, nameLen, s);
+				String name = new String(buffer, "UTF-8");
+
+				ZipEntry entry = new ZipEntry(name);
+
+				entry.setMethod((int) (method & 0xffffffffL));
+				entry.setCrc(crc & 0xffffffffL);
+				entry.setSize(size & 0xffffffffL);
+				entry.setCompressedSize(csize & 0xffffffffL);
+				entry.setTime(dostime);
+
+				System.out.println(name + " cmethod: " + entry.getMethod()
+						+ " crc: " + entry.getCrc() + " zsize: "
+						+ entry.getSize() + " comp size:  "
+						+ entry.getCompressedSize() + " time: "
+						+ entry.getTime());
+
+				if (extraLen > 0) {
+					byte[] extra = new byte[extraLen];
+					readAll(extra, 0, extraLen, s);
+					entry.setExtra(extra);
+				}
+
+				if (commentLen > 0) {
+					readAll(buffer, 0, commentLen, s);
+					entry.setComment(new String(buffer, "UTF-8"));
+				}
+
+				entries[i] = entry;
+
 			}
-			
-			readLeInt(s);
-			readLeShort(s);
-			int method = readLeShort(s);
-			int dostime = readLeInt(s);
-			int crc = readLeInt(s);
-			int csize = readLeInt(s);
-			int size = readLeInt(s);
-			int nameLen = readLeShort(s);
-			int extraLen = readLeShort(s);
-			int commentLen = readLeShort(s);
-			
-			readLeInt(s);
-			readLeInt(s);
-			int offset = readLeInt(s);
-			
-			byte[] buffer = new byte[Math.max(nameLen, commentLen)];
-			
-			readAll(buffer, 0, nameLen, s);
-			String name = new String(buffer, "UTF-8");
-			
-			ZipEntry entry = new ZipEntry(name);
-			
-			entry.setMethod((int) (method & 0xffffffffL)); 
-			entry.setCrc(crc & 0xffffffffL);
-			entry.setSize(size & 0xffffffffL);
-			entry.setCompressedSize(csize & 0xffffffffL);
-			
-			System.out.println(name + " cmethod: " + entry.getMethod() + " crc: " + entry.getCrc() + " zsize: " + entry.getSize() + " comp size:  " + entry.getCompressedSize());
-			
+		} finally {
+			s.close();
+			req.disconnect();
 		}
+
 		return false;
 	}
 
@@ -204,7 +230,7 @@ public class RemoteZipFile {
 	}
 
 	int readLeInt(InputStream s) throws IOException {
-		return readLeShort(s)  | readLeShort(s) << 16;
+		return readLeShort(s) | readLeShort(s) << 16;
 	}
 
 	int readLeShort(InputStream s) throws IOException {
