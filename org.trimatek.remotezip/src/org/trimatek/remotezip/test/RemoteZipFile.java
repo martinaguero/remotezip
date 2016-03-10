@@ -59,10 +59,10 @@ public class RemoteZipFile {
 		while (true) {
 
 			HttpURLConnection req = (HttpURLConnection) url.openConnection();
-			req.setRequestProperty("Range", "bytes=" + "-" + currentLength+22);
+			req.setRequestProperty("Range", "bytes=" + "-" + (currentLength+22));
 			req.connect();
 			System.out.println("Respnse Code: " + req.getResponseCode());
-			System.out.println("Content-Length: " + req.getContentLengthLong());
+			System.out.println("Content-Length: " + req.getContentLength());
 
 			InputStream is = req.getInputStream();
 			byte[] bb = new byte[req.getContentLength()];
@@ -156,6 +156,7 @@ public class RemoteZipFile {
 		RemoteZipFile rz = new RemoteZipFile();
 		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
 //		rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
+//		rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
 
 	}
 
