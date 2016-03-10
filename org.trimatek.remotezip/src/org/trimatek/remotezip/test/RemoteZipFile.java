@@ -31,19 +31,19 @@ public class RemoteZipFile {
 		maxFileOffset = centralOffset;
 
 		baseUrl = path;
-		 entries = new ZipEntry[totalEntries];
+		entries = new ZipEntry[totalEntries];
 
-		 URL url = new URL(path);
-		 HttpURLConnection req = (HttpURLConnection) url.openConnection();
-		 req.setRequestProperty("Range", "bytes=" + centralOffset + "-" +
-		 centralOffset + centralSize);
-		 req.connect();
-		
-		 System.out.println("Response Code: " + req.getResponseCode());
-		 System.out.println("Content-Length: " + req.getContentLengthLong());
-		 System.out.println("Total entries: " + totalEntries);
-		
-		 InputStream s = req.getInputStream();
+		URL url = new URL(path);
+		HttpURLConnection req = (HttpURLConnection) url.openConnection();
+		req.setRequestProperty("Range", "bytes=" + centralOffset + "-"
+				+ centralOffset + centralSize);
+		req.connect();
+
+		System.out.println("Response Code: " + req.getResponseCode());
+		System.out.println("Content-Length: " + req.getContentLengthLong());
+		System.out.println("Total entries: " + totalEntries);
+
+		InputStream s = req.getInputStream();
 
 		return false;
 	}
@@ -59,7 +59,8 @@ public class RemoteZipFile {
 		while (true) {
 
 			HttpURLConnection req = (HttpURLConnection) url.openConnection();
-			req.setRequestProperty("Range", "bytes=" + "-" + (currentLength+22));
+			req.setRequestProperty("Range", "bytes=" + "-"
+					+ (currentLength + 22));
 			req.connect();
 			System.out.println("Respnse Code: " + req.getResponseCode());
 			System.out.println("Content-Length: " + req.getContentLength());
@@ -67,13 +68,11 @@ public class RemoteZipFile {
 			InputStream is = req.getInputStream();
 			byte[] bb = new byte[req.getContentLength()];
 			// System.out.println(Hex.encodeHexString( bytes ));
-//			byteArrayToHex(bb);
+			// byteArrayToHex(bb);
 
 			int endSize = readAll(bb, 0, req.getContentLength(), is);
-			
+
 			req.disconnect();
-			
-			
 
 			int pos = endSize - 22;
 			int state = 0;
@@ -115,12 +114,29 @@ public class RemoteZipFile {
 	}
 
 	public static int makeInt(byte[] bb, int pos) {
-		return bb[pos + 0] | (bb[pos + 1] << 8) | (bb[pos + 2] << 16)
-				| (bb[pos + 3] << 24);
+		int zero = bb[pos + 0];
+		if (zero < 0)
+			zero += 256;
+		int one = bb[pos + 1];
+		if (one < 0)
+			one += 256;
+		int three = bb[pos + 2];
+		if (three < 0)
+			three += 256;
+		int four = bb[pos + 3];
+		if (four < 0)
+			four += 256;
+		return zero | one << 8 | three << 16 | four << 24;
 	}
 
 	public static int makeShort(byte[] bb, int pos) {
-		return bb[pos + 0] | (bb[pos + 1] << 8);
+		int zero = bb[pos + 0];
+		if (zero < 0)
+			zero += 256;
+		int one = bb[pos + 1];
+		if (one < 0)
+			one += 256;
+		return zero | one << 8;
 	}
 
 	private static String byteArrayToHex(byte[] a) {
@@ -137,14 +153,13 @@ public class RemoteZipFile {
 	private static String byteToHex(byte b) {
 		return String.format("%02x", b & 0xff);
 	}
-	
-	static int readAll(byte [] bb, int p, int sst, InputStream s) throws IOException
-	{
+
+	static int readAll(byte[] bb, int p, int sst, InputStream s)
+			throws IOException {
 		int ss = 0;
-		while(ss < sst)
-		{
-			int r = s.read(bb, p, sst-ss);
-			if(r <= 0)
+		while (ss < sst) {
+			int r = s.read(bb, p, sst - ss);
+			if (r <= 0)
 				return ss;
 			ss += r;
 			p += r;
@@ -155,8 +170,8 @@ public class RemoteZipFile {
 	public static void main(String[] args) throws IOException {
 		RemoteZipFile rz = new RemoteZipFile();
 		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
-//		rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
-//		rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
+		// rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
+		// rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
 
 	}
 
