@@ -90,7 +90,7 @@ public class RemoteZipFile {
 				entry.setCrc(crc & 0xffffffffL);
 				entry.setSize(size & 0xffffffffL);
 				entry.setCompressedSize(csize & 0xffffffffL);
-				// TODO revisar dato de tiempo
+				// TODO check time data
 				entry.setTime(dostime);
 
 				System.out.println(name + " cmethod: " + entry.getMethod()
@@ -137,13 +137,11 @@ public class RemoteZipFile {
 			req.setRequestProperty("Range", "bytes=" + "-"
 					+ (currentLength + 22));
 			req.connect();
-			System.out.println("Respnse Code: " + req.getResponseCode());
+			System.out.println("Response Code: " + req.getResponseCode());
 			System.out.println("Content-Length: " + req.getContentLength());
 
 			InputStream is = req.getInputStream();
 			byte[] bb = new byte[req.getContentLength()];
-			// System.out.println(Hex.encodeHexString( bytes ));
-			// byteArrayToHex(bb);
 
 			int endSize = readAll(bb, 0, req.getContentLength(), is);
 
@@ -174,8 +172,6 @@ public class RemoteZipFile {
 				else
 					break;
 			} else {
-				// found it!! so at offset pos+3*4 there is Size, and pos+4*4
-				// BinaryReader is so elegant but now it's too much
 				centralSize = makeInt(bb, pos + 12);
 				centralOffset = makeInt(bb, pos + 16);
 				totalEntries = makeShort(bb, pos + 10);
@@ -212,17 +208,6 @@ public class RemoteZipFile {
 		if (one < 0)
 			one += 256;
 		return zero | one << 8;
-	}
-
-	private static String byteArrayToHex(byte[] a) {
-		StringBuilder sb = new StringBuilder(a.length * 2);
-		String s = null;
-		for (byte b : a) {
-			// sb.append(String.format("%02x", b & 0xff));
-			s = String.format("%02x", b & 0xff);
-			System.out.println(s);
-		}
-		return sb.toString();
 	}
 
 	private static String byteToHex(byte b) {
@@ -289,7 +274,7 @@ public class RemoteZipFile {
 
 		InputStream istr = new PartialInputStream(baseStream, req,
 				entries[index].getCompressedSize());
-		
+
 		return new InflaterInputStream(istr, new Inflater(true));
 	}
 
@@ -310,21 +295,28 @@ public class RemoteZipFile {
 			new DataInputStream(s).readByte();
 	}
 
+	private static String printString(java.io.InputStream stream) {
+		java.util.Scanner s = new java.util.Scanner(stream).useDelimiter("\\A");
+		return s.hasNext() ? s.next() : "";
+	}
+
+	private static String printHexa(InputStream stream) throws IOException {
+		StringBuffer sb = new StringBuffer();
+		byte[] bytes = IOUtils.toByteArray(stream);
+		for (byte b : bytes) {
+			sb.append(byteToHex(b) + " ");
+		}
+		return sb.toString();
+	}
+
 	public static void main(String[] args) throws IOException {
 		RemoteZipFile rz = new RemoteZipFile();
 		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
 		// rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
 		// rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
-		InputStream stream = rz.getInputStream(rz.getEntries()[1]);
-		byte[] bytes = IOUtils.toByteArray(stream);
-		for (byte b : bytes) {
-			System.out.println(byteToHex(b));
-		}
-	}
-	
-	static String streamToString(java.io.InputStream is) {
-	    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-	    return s.hasNext() ? s.next() : "";
+		InputStream stream = rz.getInputStream(rz.getEntries()[0]);
+//		System.out.println(printHexa(stream));
+		System.out.println(printString(stream));
 	}
 
 }
