@@ -4,15 +4,16 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Date;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
+import org.trimatek.remotezip.model.RemoteZipEntry;
+
 public class RemoteZipFile {
 
-	private ZipEntry[] entries;
+	private RemoteZipEntry[] entries;
 	private String baseUrl;
 
 	int maxFileOffset;
@@ -33,7 +34,7 @@ public class RemoteZipFile {
 		maxFileOffset = centralOffset;
 
 		baseUrl = path;
-		entries = new ZipEntry[totalEntries];
+		entries = new RemoteZipEntry[totalEntries];
 
 		URL url = new URL(path);
 		HttpURLConnection req = (HttpURLConnection) url.openConnection();
@@ -74,13 +75,13 @@ public class RemoteZipFile {
 				readAll(buffer, 0, nameLen, s);
 				String name = new String(buffer, "UTF-8");
 
-				ZipEntry entry = new ZipEntry(name);
+				RemoteZipEntry entry = new RemoteZipEntry(name);
 
 				entry.setMethod((int) (method & 0xffffffffL));
 				entry.setCrc(crc & 0xffffffffL);
 				entry.setSize(size & 0xffffffffL);
 				entry.setCompressedSize(csize & 0xffffffffL);
-				//TODO revisar dato de tiempo
+				// TODO revisar dato de tiempo
 				entry.setTime(dostime);
 
 				System.out.println(name + " cmethod: " + entry.getMethod()
@@ -100,6 +101,8 @@ public class RemoteZipFile {
 					entry.setComment(new String(buffer, "UTF-8"));
 				}
 
+				entry.setZipFileIndex(i);
+				entry.setOffset(offset);
 				entries[i] = entry;
 
 			}
@@ -242,6 +245,32 @@ public class RemoteZipFile {
 		if (second < 0)
 			second += 256;
 		return first | second << 8;
+	}
+
+	public InputStream getInputStream(RemoteZipEntry entry)
+			throws MalformedURLException, IOException {
+
+		if (entry.getSize() == 0) {
+			return null;
+		}
+
+		if (entries == null) {
+			throw new IllegalStateException("ZipFile has closed");
+		}
+
+		int index = entry.getZipFileIndex();
+		if (index < 0 || index >= entries.length
+				|| entries[index].getName() != entry.getName()) {
+			throw new IndexOutOfBoundsException();
+		}
+
+		HttpURLConnection req = (HttpURLConnection) new URL(baseUrl)
+				.openConnection();
+		// int limit = (int)(entry.get+entry.getCompressedSize()+16+65536*2);
+		// if(limit >= MaxFileOffset)
+		// limit = MaxFileOffset-1;
+
+		return null;
 	}
 
 	public static void main(String[] args) throws IOException {
