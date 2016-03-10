@@ -50,6 +50,29 @@ public class RemoteZipFile {
 			if (readLeInt(s) != ZipInputStream.CENSIG) {
 				throw new ZipException("Wrong Central Directory signature");
 			}
+			
+			readLeInt(s);
+			readLeShort(s);
+			int method = readLeShort(s);
+			int dostime = readLeInt(s);
+			int crc = readLeInt(s);
+			int csize = readLeInt(s);
+			int size = readLeInt(s);
+			int nameLen = readLeShort(s);
+			int extraLen = readLeShort(s);
+			int commentLen = readLeShort(s);
+			
+			readLeInt(s);
+			readLeInt(s);
+			int offset = readLeInt(s);
+			
+			byte[] buffer = new byte[Math.max(nameLen, commentLen)];
+			
+			readAll(buffer, 0, nameLen, s);
+			String name = new String(buffer, "UTF-8");
+			
+			System.out.println(name);
+			
 		}
 		return false;
 	}
@@ -174,8 +197,7 @@ public class RemoteZipFile {
 	}
 
 	int readLeInt(InputStream s) throws IOException {
-		int result = readLeShort(s) | readLeShort(s) << 16;
-		return result;
+		return readLeShort(s) | readLeShort(s) << 16;
 	}
 
 	int readLeShort(InputStream s) throws IOException {
