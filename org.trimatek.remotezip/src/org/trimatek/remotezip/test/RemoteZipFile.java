@@ -204,12 +204,17 @@ public class RemoteZipFile {
 	}
 
 	int readLeInt(InputStream s) throws IOException {
-		return readLeShort(s) | readLeShort(s) << 16;
+		return readLeShort(s)  | readLeShort(s) << 16;
 	}
 
 	int readLeShort(InputStream s) throws IOException {
-		return new DataInputStream(s).readByte()
-				| new DataInputStream(s).readByte() << 8;
+		int first = new DataInputStream(s).readByte();
+		if (first < 0)
+			first += 256;
+		int second = new DataInputStream(s).readByte();
+		if (second < 0)
+			second += 256;
+		return first | second << 8;
 	}
 
 	public static void main(String[] args) throws IOException {
