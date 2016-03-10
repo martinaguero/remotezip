@@ -6,10 +6,13 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.zip.Inflater;
+import java.util.zip.InflaterInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
+import org.trimatek.remotezip.model.PartialInputStream;
 import org.trimatek.remotezip.model.RemoteZipEntry;
 
 public class RemoteZipFile {
@@ -283,7 +286,10 @@ public class RemoteZipFile {
 
 		skipLocalHeader(baseStream, entries[index]);
 
-		return null;
+		InputStream istr = new PartialInputStream(baseStream, req,
+				entries[index].getCompressedSize());
+		
+		return new InflaterInputStream(istr, new Inflater(true));
 	}
 
 	private void skipLocalHeader(InputStream baseStream, RemoteZipEntry entry)
@@ -296,7 +302,6 @@ public class RemoteZipFile {
 		int namelen = readLeShort(baseStream);
 		int extralen = readLeShort(baseStream);
 		skip(baseStream, namelen + extralen);
-
 	}
 
 	private static void skip(InputStream s, int n) throws IOException {
@@ -309,9 +314,14 @@ public class RemoteZipFile {
 		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
 		// rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
 		// rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
-		rz.getInputStream(rz.getEntries()[0]);
-		
-		
+		InputStream stream = rz.getInputStream(rz.getEntries()[2]);
+		System.out.println(streamToString(stream));
+
+	}
+	
+	static String streamToString(java.io.InputStream is) {
+	    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+	    return s.hasNext() ? s.next() : "";
 	}
 
 }
