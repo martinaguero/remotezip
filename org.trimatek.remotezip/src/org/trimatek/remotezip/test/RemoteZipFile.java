@@ -80,6 +80,7 @@ public class RemoteZipFile {
 				entry.setCrc(crc & 0xffffffffL);
 				entry.setSize(size & 0xffffffffL);
 				entry.setCompressedSize(csize & 0xffffffffL);
+				//TODO revisar dato de tiempo
 				entry.setTime(dostime);
 
 				System.out.println(name + " cmethod: " + entry.getMethod()
