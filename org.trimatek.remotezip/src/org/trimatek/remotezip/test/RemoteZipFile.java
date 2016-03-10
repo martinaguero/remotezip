@@ -225,7 +225,7 @@ public class RemoteZipFile {
 		return String.format("%02x", b & 0xff);
 	}
 
-	static int readAll(byte[] bb, int p, int sst, InputStream s)
+	public static int readAll(byte[] bb, int p, int sst, InputStream s)
 			throws IOException {
 		int ss = 0;
 		while (ss < sst) {
