@@ -12,6 +12,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.io.IOUtils;
 import org.trimatek.remotezip.model.PartialInputStream;
 import org.trimatek.remotezip.model.RemoteZipEntry;
@@ -274,8 +275,21 @@ public class RemoteZipFile {
 
 		InputStream istr = new PartialInputStream(baseStream, req,
 				entries[index].getCompressedSize());
+		
+		int method = entries[index].getMethod();
+		
+		switch(method){
+		case ZipEntry.STORED:
+			return istr;
+		case ZipEntry.DEFLATED:
+			return new InflaterInputStream(istr, new Inflater(true));
+		case 12:
+			return new BZip2CompressorInputStream(istr);
+		default:
+			throw new ZipException("Unknown compression method: " + method);
+		}
 
-		return new InflaterInputStream(istr, new Inflater(true));
+		
 	}
 
 	private void skipLocalHeader(InputStream baseStream, RemoteZipEntry entry)
