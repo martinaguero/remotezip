@@ -1,2 +1,2 @@
 # remotezip
-Access to remote zip content
+Remote access to zip content
