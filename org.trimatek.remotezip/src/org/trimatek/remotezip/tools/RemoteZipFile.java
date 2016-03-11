@@ -1,4 +1,4 @@
-package org.trimatek.remotezip.test;
+package org.trimatek.remotezip.tools;
 
 import java.io.DataInputStream;
 import java.io.IOException;
@@ -14,57 +14,54 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.io.IOUtils;
-import org.trimatek.remotezip.model.PartialInputStream;
 import org.trimatek.remotezip.model.RemoteZipEntry;
+import org.trimatek.remotezip.tools.PartialInputStream;
+import static org.trimatek.remotezip.Config.PROXY_URL;
+import static org.trimatek.remotezip.Config.PROXY_PORT;
+import static org.trimatek.remotezip.Config.BEHIND_PROXY;
 
 public class RemoteZipFile {
 
 	private RemoteZipEntry[] entries;
 	private String baseUrl;
-
-	int maxFileOffset;
-	int centralOffset, centralSize;
-	int totalEntries;
+	private int maxFileOffset;
+	private int centralOffset, centralSize;
+	private int totalEntries;
 
 	public RemoteZipFile() {
-		System.setProperty("https.proxyHost", "proxy.up");
-		System.setProperty("https.proxyPort", "8080");
+		if (BEHIND_PROXY) {
+			System.setProperty("https.proxyHost", PROXY_URL);
+			System.setProperty("https.proxyPort", PROXY_PORT);
+		}
 	}
 
 	public RemoteZipEntry[] getEntries() {
 		return entries;
 	}
 
-	public boolean load(String path) throws IOException {
+	public RemoteZipEntry[] load(String path) throws IOException {
 
 		if (!findCentralDirectory(path)) {
-			return false;
+			return null;
 		}
-
 		maxFileOffset = centralOffset;
-
 		baseUrl = path;
 		entries = new RemoteZipEntry[totalEntries];
-
 		URL url = new URL(path);
 		HttpURLConnection req = (HttpURLConnection) url.openConnection();
 		req.setRequestProperty("Range", "bytes=" + centralOffset + "-"
 				+ centralOffset + centralSize);
 		req.connect();
-
 		System.out.println("Response Code: " + req.getResponseCode());
 		System.out.println("Content-Length: " + req.getContentLengthLong());
 		System.out.println("Total entries: " + totalEntries);
 
 		InputStream s = req.getInputStream();
-
 		try {
-
 			for (int i = 0; i < totalEntries; i++) {
 				if (readLeInt(s) != ZipInputStream.CENSIG) {
 					throw new ZipException("Wrong Central Directory signature");
 				}
-
 				readLeInt(s);
 				readLeShort(s);
 				int method = readLeShort(s);
@@ -75,53 +72,37 @@ public class RemoteZipFile {
 				int nameLen = readLeShort(s);
 				int extraLen = readLeShort(s);
 				int commentLen = readLeShort(s);
-
 				readLeInt(s);
 				readLeInt(s);
 				int offset = readLeInt(s);
-
 				byte[] buffer = new byte[Math.max(nameLen, commentLen)];
-
 				readAll(buffer, 0, nameLen, s);
 				String name = new String(buffer, "UTF-8");
-
 				RemoteZipEntry entry = new RemoteZipEntry(name);
-
 				entry.setMethod((int) (method & 0xffffffffL));
 				entry.setCrc(crc & 0xffffffffL);
 				entry.setSize(size & 0xffffffffL);
 				entry.setCompressedSize(csize & 0xffffffffL);
 				// TODO check time data
 				entry.setTime(dostime);
-
-				System.out.println("[" + i + "]" + name + " cmethod: " + entry.getMethod()
-						+ " crc: " + entry.getCrc() + " zsize: "
-						+ entry.getSize() + " comp size:  "
-						+ entry.getCompressedSize() + " time: "
-						+ entry.getTime());
-
 				if (extraLen > 0) {
 					byte[] extra = new byte[extraLen];
 					readAll(extra, 0, extraLen, s);
 					entry.setExtra(extra);
 				}
-
 				if (commentLen > 0) {
 					readAll(buffer, 0, commentLen, s);
 					entry.setComment(new String(buffer, "UTF-8"));
 				}
-
 				entry.setZipFileIndex(i);
 				entry.setOffset(offset);
 				entries[i] = entry;
-
 			}
 		} finally {
 			s.close();
 			req.disconnect();
 		}
-
-		return false;
+		return getEntries();
 	}
 
 	private boolean findCentralDirectory(String path) throws IOException {
@@ -185,7 +166,7 @@ public class RemoteZipFile {
 		return false;
 	}
 
-	public static int makeInt(byte[] bb, int pos) {
+	private static int makeInt(byte[] bb, int pos) {
 		int zero = bb[pos + 0];
 		if (zero < 0)
 			zero += 256;
@@ -201,7 +182,7 @@ public class RemoteZipFile {
 		return zero | one << 8 | three << 16 | four << 24;
 	}
 
-	public static int makeShort(byte[] bb, int pos) {
+	private static int makeShort(byte[] bb, int pos) {
 		int zero = bb[pos + 0];
 		if (zero < 0)
 			zero += 256;
@@ -209,10 +190,6 @@ public class RemoteZipFile {
 		if (one < 0)
 			one += 256;
 		return zero | one << 8;
-	}
-
-	private static String byteToHex(byte b) {
-		return String.format("%02x", b & 0xff);
 	}
 
 	public static int readAll(byte[] bb, int p, int sst, InputStream s)
@@ -228,11 +205,11 @@ public class RemoteZipFile {
 		return ss;
 	}
 
-	int readLeInt(InputStream s) throws IOException {
+	private int readLeInt(InputStream s) throws IOException {
 		return readLeShort(s) | readLeShort(s) << 16;
 	}
 
-	int readLeShort(InputStream s) throws IOException {
+	private int readLeShort(InputStream s) throws IOException {
 		int first = new DataInputStream(s).readByte();
 		if (first < 0)
 			first += 256;
@@ -250,7 +227,7 @@ public class RemoteZipFile {
 		}
 
 		if (entries == null) {
-			throw new IllegalStateException("ZipFile has closed");
+			throw new IllegalStateException("ZipFile has been closed");
 		}
 
 		int index = entry.getZipFileIndex();
@@ -275,10 +252,10 @@ public class RemoteZipFile {
 
 		InputStream istr = new PartialInputStream(baseStream, req,
 				entries[index].getCompressedSize());
-		
+
 		int method = entries[index].getMethod();
-		
-		switch(method){
+
+		switch (method) {
 		case ZipEntry.STORED:
 			return istr;
 		case ZipEntry.DEFLATED:
@@ -289,13 +266,12 @@ public class RemoteZipFile {
 			throw new ZipException("Unknown compression method: " + method);
 		}
 
-		
 	}
 
 	private void skipLocalHeader(InputStream baseStream, RemoteZipEntry entry)
 			throws IOException {
 		if (readLeInt(baseStream) != ZipEntry.LOCSIG) {
-			throw new ZipException("Wrong Local header signature");
+			throw new ZipException("Wrong local header signature");
 		}
 
 		skip(baseStream, 10 + 12);
@@ -307,31 +283,6 @@ public class RemoteZipFile {
 	private static void skip(InputStream s, int n) throws IOException {
 		for (int i = 0; i < n; i++)
 			new DataInputStream(s).readByte();
-	}
-
-	private static String printString(java.io.InputStream stream) {
-		java.util.Scanner s = new java.util.Scanner(stream).useDelimiter("\\A");
-		return s.hasNext() ? s.next() : "";
-	}
-
-	private static String printHexa(InputStream stream) throws IOException {
-		StringBuffer sb = new StringBuffer();
-		byte[] bytes = IOUtils.toByteArray(stream);
-		for (byte b : bytes) {
-			sb.append(byteToHex(b) + " ");
-		}
-		return sb.toString();
-	}
-
-	public static void main(String[] args) throws IOException {
-		RemoteZipFile rz = new RemoteZipFile();
-//		rz.load("https://repo1.maven.org/maven2/abbot/abbot/1.4.0/abbot-1.4.0.jar");
-//		rz.load("https://repo1.maven.org/maven2/bcel/bcel/5.1/bcel-5.1.jar");
-		rz.load("https://repo1.maven.org/maven2/jp/sf/amateras/mirage/1.2.3/mirage-1.2.3.jar");
-		// rz.load("http://percro.sssup.it/~pit/tools/miranda.zip");
-		InputStream stream = rz.getInputStream(rz.getEntries()[162]);
-		System.out.println(printHexa(stream));
-//		System.out.println(printString(stream));
 	}
 
 }

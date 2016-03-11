@@ -1,12 +1,10 @@
-package org.trimatek.remotezip.model;
+package org.trimatek.remotezip.tools;
 
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.zip.InflaterInputStream;
-
-import org.trimatek.remotezip.test.RemoteZipFile;
 
 public class PartialInputStream extends InflaterInputStream {
 
