@@ -1,24 +1,21 @@
 package org.trimatek.remotezip;
 
+import java.util.Hashtable;
+
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
+import org.trimatek.remotezip.service.RemoteZipService;
+import org.trimatek.remotezip.service.impl.RemoteZipServiceImpl;
 
 public class Activator implements BundleActivator {
 
-	/*
-	 * (non-Javadoc)
-	 * @see org.osgi.framework.BundleActivator#start(org.osgi.framework.BundleContext)
-	 */
 	public void start(BundleContext context) throws Exception {
-		System.out.println("Hello World!!");
+		context.registerService(RemoteZipService.class.getName(),
+				new RemoteZipServiceImpl(), new Hashtable());
 	}
-	
-	/*
-	 * (non-Javadoc)
-	 * @see org.osgi.framework.BundleActivator#stop(org.osgi.framework.BundleContext)
-	 */
+
 	public void stop(BundleContext context) throws Exception {
-		System.out.println("Goodbye World!!");
+
 	}
 
 }

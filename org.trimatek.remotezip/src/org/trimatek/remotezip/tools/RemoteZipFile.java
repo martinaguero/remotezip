@@ -1,11 +1,16 @@
 package org.trimatek.remotezip.tools;
 
+import static org.trimatek.remotezip.Config.PROXY_PORT;
+import static org.trimatek.remotezip.Config.PROXY_URL;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterInputStream;
 import java.util.zip.ZipEntry;
@@ -13,15 +18,11 @@ import java.util.zip.ZipException;
 import java.util.zip.ZipInputStream;
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import org.apache.commons.io.IOUtils;
 import org.trimatek.remotezip.model.RemoteZipEntry;
-import org.trimatek.remotezip.tools.PartialInputStream;
-import static org.trimatek.remotezip.Config.PROXY_URL;
-import static org.trimatek.remotezip.Config.PROXY_PORT;
-import static org.trimatek.remotezip.Config.BEHIND_PROXY;
 
 public class RemoteZipFile {
 
+	private static Logger logger = Logger.getLogger(RemoteZipFile.class.getName());
 	private RemoteZipEntry[] entries;
 	private String baseUrl;
 	private int maxFileOffset;
@@ -29,7 +30,7 @@ public class RemoteZipFile {
 	private int totalEntries;
 
 	public RemoteZipFile() {
-		if (BEHIND_PROXY) {
+		if (PROXY_URL != null && PROXY_PORT != null) {
 			System.setProperty("https.proxyHost", PROXY_URL);
 			System.setProperty("https.proxyPort", PROXY_PORT);
 		}
@@ -39,10 +40,10 @@ public class RemoteZipFile {
 		return entries;
 	}
 
-	public RemoteZipEntry[] load(String path) throws IOException {
+	public boolean load(String path) throws IOException {
 
 		if (!findCentralDirectory(path)) {
-			return null;
+			return false;
 		}
 		maxFileOffset = centralOffset;
 		baseUrl = path;
@@ -52,9 +53,9 @@ public class RemoteZipFile {
 		req.setRequestProperty("Range", "bytes=" + centralOffset + "-"
 				+ centralOffset + centralSize);
 		req.connect();
-		System.out.println("Response Code: " + req.getResponseCode());
-		System.out.println("Content-Length: " + req.getContentLengthLong());
-		System.out.println("Total entries: " + totalEntries);
+		logger.log(Level.INFO, "Response Code: " + req.getResponseCode());
+		logger.log(Level.INFO, "Content-Length: " + req.getContentLengthLong());
+		logger.log(Level.INFO, "Total entries: " + totalEntries);
 
 		InputStream s = req.getInputStream();
 		try {
@@ -102,7 +103,7 @@ public class RemoteZipFile {
 			s.close();
 			req.disconnect();
 		}
-		return getEntries();
+		return true;
 	}
 
 	private boolean findCentralDirectory(String path) throws IOException {
@@ -119,8 +120,8 @@ public class RemoteZipFile {
 			req.setRequestProperty("Range", "bytes=" + "-"
 					+ (currentLength + 22));
 			req.connect();
-			System.out.println("Response Code: " + req.getResponseCode());
-			System.out.println("Content-Length: " + req.getContentLength());
+			logger.log(Level.INFO, "Response Code: " + req.getResponseCode());
+			logger.log(Level.INFO, "Content-Length: " + req.getContentLength());
 
 			InputStream is = req.getInputStream();
 			byte[] bb = new byte[req.getContentLength()];
@@ -135,8 +136,8 @@ public class RemoteZipFile {
 				if (bb[pos] == 0x50) {
 					if (bb[pos + 1] == 0x4b && bb[pos + 2] == 0x05
 							&& bb[pos + 3] == 0x06) {
-						System.out.println("found!");
-						break; // found!!
+						logger.log(Level.INFO, "Central directory found!");
+						break;
 					}
 					pos -= 4;
 				} else
@@ -157,7 +158,7 @@ public class RemoteZipFile {
 				centralSize = makeInt(bb, pos + 12);
 				centralOffset = makeInt(bb, pos + 16);
 				totalEntries = makeShort(bb, pos + 10);
-				System.out.println(totalEntries);
+				logger.log(Level.INFO, "TotalEntries: " + totalEntries);
 				return true;
 			}
 
