@@ -14,8 +14,7 @@ import org.trimatek.remotezip.tools.StreamUtils;
 
 public class RemoteZipServiceImpl implements RemoteZipService {
 
-	private static Logger logger = Logger.getLogger(RemoteZipServiceImpl.class
-			.getName());
+	private static Logger logger = Logger.getLogger(RemoteZipServiceImpl.class.getName());
 
 	public RemoteZipFile load(String path, String proxy) throws IOException {
 		RemoteZipFile rf = null;
@@ -27,17 +26,16 @@ public class RemoteZipServiceImpl implements RemoteZipService {
 				Config.PROXY_URL = splitted[0];
 				Config.PROXY_PORT = splitted[1];
 			}
-			rf = new RemoteZipFile();
-			if (rf.load(path)) {
-				return rf;
-			}
+		}
+		rf = new RemoteZipFile();
+		if (rf.load(path)) {
+			return rf;
 		}
 		return null;
 	}
 
 	@Override
-	public InputStream getEntryStream(RemoteZipEntry entry,
-			RemoteZipFile remoteZip) {
+	public InputStream getEntryStream(RemoteZipEntry entry, RemoteZipFile remoteZip) {
 		try {
 			return remoteZip.getInputStream(entry);
 		} catch (IOException e) {
@@ -56,8 +54,7 @@ public class RemoteZipServiceImpl implements RemoteZipService {
 		try {
 			return StreamUtils.printHexa(inputStream);
 		} catch (IOException e) {
-			logger.log(Level.SEVERE,
-					"Error while converting stream to hexadecimal", e);
+			logger.log(Level.SEVERE, "Error while converting stream to hexadecimal", e);
 		}
 		return null;
 	}
